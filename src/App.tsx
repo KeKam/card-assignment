@@ -1,26 +1,49 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from 'react';
 
-function App() {
+import { Card } from './components/card';
+
+export type Deck = {
+  deck_id: string;
+  remaining: number;
+  shuffled: boolean;
+  success: boolean;
+};
+
+export const App = () => {
+  const [deck, setDeck] = useState<Deck | null>(null);
+  const [cards, setCards] = useState([]);
+  const [remaining, setRemaining] = useState(0);
+
+  useEffect(() => {
+    const fetchDeck = async () => {
+      const response = await fetch(
+        'https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1'
+      );
+      const json = await response.json();
+
+      setDeck(json);
+    };
+    fetchDeck();
+  }, []);
+
+  const fetchNewCard = async () => {
+    if (deck) {
+      const response = await fetch(
+        `https://deckofcardsapi.com/api/deck/${deck.deck_id}/draw/?count=1`
+      );
+
+      const json = await response.json();
+      setCards(json.cards);
+      setRemaining(json.remaining);
+      console.log(json);
+    }
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <div>{remaining}</div>
+      <Card cards={cards} />
+      <button onClick={fetchNewCard}>Start</button>
     </div>
   );
-}
-
-export default App;
+};
