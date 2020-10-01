@@ -2,18 +2,33 @@ import React, { useState } from 'react';
 
 import { getValues } from './utils';
 
-import { CardItem, Card } from './components/card-item/card-item';
-import { ScoreDisplay } from './components/score-display/score-display';
-import { CounterDisplay } from './components/counter-display/counter-display';
-
 import './App.css';
 
-export type Deck = {
+type Deck = {
   deck_id: string;
   remaining: number;
   shuffled: boolean;
   success: boolean;
 };
+
+type CardInfo = {
+  success: boolean;
+  cards: Card[];
+  deck_id: string;
+  remaining: number;
+};
+
+type Card = {
+  image: string;
+  value: string;
+  suit: string;
+  code: string;
+};
+
+enum Option {
+  HIGHER = 'HIGHER',
+  LOWER = 'LOWER',
+}
 
 export const App = () => {
   const [deck, setDeck] = useState<Deck | null>(null);
@@ -26,7 +41,7 @@ export const App = () => {
       'https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1'
     );
 
-    const deck = await response.json();
+    const deck: Deck = await response.json();
     setDeck(deck);
     setScore(0);
 
@@ -34,42 +49,35 @@ export const App = () => {
     setCard(newCard);
   };
 
-  const fetchNewCard = async (deckId: string) => {
+  const fetchNewCard = async (deckId: string): Promise<Card> => {
     const response = await fetch(
       `https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=1`
     );
 
-    const cardInfo = await response.json();
+    const cardInfo: CardInfo = await response.json();
     setRemaining(cardInfo.remaining);
 
     return cardInfo.cards[0];
   };
 
-  const guessHigher = async () => {
+  const guess = async (guess: Option) => {
     if (deck && card && remaining > 0) {
       const newCard = await fetchNewCard(deck.deck_id);
 
-      if (getValues(card.value) < getValues(newCard.value)) {
-        setScore(score + 1);
-        setCard(newCard);
+      if (guess === Option.HIGHER) {
+        if (getValues(card.value) < getValues(newCard.value)) {
+          setScore(score + 1);
+          setCard(newCard);
+        } else {
+          setCard(newCard);
+        }
       } else {
-        setCard(newCard);
-      }
-    } else {
-      setCard(null);
-    }
-  };
-
-  const guessLower = async () => {
-    if (deck && card && remaining > 0) {
-      const newCard = await fetchNewCard(deck.deck_id);
-      console.log(card.value, 'current', newCard.value);
-
-      if (getValues(card.value) > getValues(newCard.value)) {
-        setScore(score + 1);
-        setCard(newCard);
-      } else {
-        setCard(newCard);
+        if (getValues(card.value) > getValues(newCard.value)) {
+          setScore(score + 1);
+          setCard(newCard);
+        } else {
+          setCard(newCard);
+        }
       }
     } else {
       setCard(null);
@@ -79,11 +87,11 @@ export const App = () => {
   return (
     <div className='container'>
       <div>
-        <ScoreDisplay score={score} />
-        <CounterDisplay remaining={remaining} />
+        <h3>Correct answers: {score}</h3>
+        <h3>Cards remaining: {remaining}</h3>
       </div>
       <div className='card-container'>
-        {card ? <CardItem card={card} /> : null}
+        {card ? <img src={card.image} alt='Card' /> : null}
       </div>
       {!card ? (
         <button className='button' onClick={startGame}>
@@ -91,10 +99,10 @@ export const App = () => {
         </button>
       ) : (
         <div>
-          <button className='button' onClick={guessHigher}>
+          <button className='button' onClick={() => guess(Option.HIGHER)}>
             Higher
           </button>
-          <button className='button' onClick={guessLower}>
+          <button className='button' onClick={() => guess(Option.LOWER)}>
             Lower
           </button>
         </div>
